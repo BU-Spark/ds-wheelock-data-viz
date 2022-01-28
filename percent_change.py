@@ -1,19 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[7]:
-
-
 import pandas as pd
 import numpy as np
 import os
 import math
-
-data = pd.read_csv("bullying_viz_data.csv")
-data
-
-
-# In[19]:
 
 
 def reformat_to_pct_change(data):
@@ -48,21 +36,11 @@ def reformat_to_pct_change(data):
     return pivot_data
 
 
-# In[20]:
-
-
-pct_changed = reformat_to_pct_change(data)
-pct_changed
-
-
-# In[21]:
-
-
-pct_changed.to_csv("data_pct_change.csv")
-
-
-# In[ ]:
-
+if __name__ == "__main__":
+    data = pd.read_csv("bullying_viz_data.csv")
+    pct_changed = reformat_to_pct_change(data)
+    pct_changed
+    pct_changed.to_csv("data_pct_change.csv")
 
 
 
