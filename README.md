@@ -1,7 +1,15 @@
 # WEPC-Research-Visualization
 Repository for Data Visualization Project with Wheelock Educational Policy Center and BU Spark!
 
-# Add Users
-To add yourself to the repository, open a Pull Request modifying `COLLABORATORS`, entering your GitHub username in a newline.
+# Docs
+## Data
+<ul>
+  <li>bullying_viz_data.csv: Raw data for all types of bullying</li>
+  <li>data_pct_change.csv: Data of percent change over time for all states and bullying types</li>
+</ul>
 
-All Pull Requests must follow the Pull Request Template, with a title formatted like such `[Project Name]: <Descriptive Title>`
+## Code
+<ul>
+  <li>map_generation.ipynb: Generates US map for percent change data by bullying type</li>
+  <li>percent_change.py: Module to convert data to percent change</li>
+</ul>
