@@ -1,11 +1,10 @@
 import dash
-from dash import dcc
-from dash import html
+import dash_core_components as dcc
+import dash_html_components as html
 import plotly.express as px
 import pandas as pd
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-import datetime
 from percent_change import reformat_to_pct_change
 
 app = dash.Dash(__name__)
