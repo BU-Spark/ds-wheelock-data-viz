@@ -24,6 +24,22 @@ dates = [col[1] for col in data.columns]
 
 app.layout = html.Div(children=[
     html.H1(children='Wheelock Dashboard'),
+    
+    html.Div(
+        dcc.Dropdown(
+            id="map_dropdown",
+            options=[
+                {'label': "School Bullying", "value": "school bullying"},
+                {'label': "Cyberbullying", "value": "cyberbullying"},
+                {'label': "School Bullying + Cyberbullying", "value": "school bullying + cyberbullying"},
+            ],
+            placeholder='Select'
+        )
+    ),
+
+    html.Div(
+        dcc.Graph(id="map")
+    ),
 
     html.Div([
         dcc.Dropdown(
@@ -220,6 +236,141 @@ def update_graph(value):
             )
     }
     '''
+
+
+def reshape_group(g):
+    """Helper method for formatting map data"""
+    g = g.unstack('state')
+    g.columns = g.columns.droplevel()
+    g['state'] = [g.columns[0] for i in range(len(g))]
+    g = g.rename_axis("newhead").reset_index()
+    g.columns.name = None
+    g.columns = ['date', 'pctChange', 'state']
+    return g
+
+
+@app.callback(
+    Output("map", "figure"),
+    [Input('map_dropdown', 'value')]
+)
+def load_map(value):
+    """Note: For detailed code with explanations for map generation, see map_generation.ipynb"""
+
+    # load and reformat data to be compatable with choropleth map
+    percent_change_data = reformat_to_pct_change(pd.read_csv('bullying_viz_data.csv'))
+
+    if value == None or value == "school bullying + cyberbullying":
+        map_data = percent_change_data['sch_cy_bly_sum']
+
+        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
+        reshaped_groups = []
+        for group in groupby.groups:
+            reshaped_groups.append(reshape_group(groupby.get_group(group)))
+        
+        reformatted_data = pd.concat(reshaped_groups)
+        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
+        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+
+        # color scale
+        scale = [[0.0, "#00B2EE"], [0.13, "#e2e2e2"], [0.2, '#ff4d4d'],[0.4, '#ff0000'], 
+        [0.6, '#e60000'],[0.8, '#cc0000'],[1.0, '#b30000'], ]
+
+        # define layout and figure
+        layout = dict(geo=dict(scope='usa',
+                            projection={'type': 'albers usa'}),
+                    title="Percent Change in Sum of Bullying Searches, Month to Month", # have to change this when adding 
+        )
+
+        fig = px.choropleth(reformatted_data,
+                            locations="state",
+                            color="pctChange",
+                            hover_name ="state", 
+                            color_continuous_scale = scale,
+                            scope ="usa",
+                            locationmode='USA-states',
+                            animation_frame ="date",
+                        range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
+
+        fig.layout.title="Percent Change of All Bullying Searches, Month to Month"
+        fig.layout.font={"family":"Droid Serif"}
+        fig.layout.titlefont={"size":21}
+        fig.update_coloraxes(colorbar={"len": 0.7})
+
+        return fig
+
+    elif value == "school bullying + cyberbullying":
+        map_data = percent_change_data['sch_bly']
+
+        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
+        reshaped_groups = []
+        for group in groupby.groups:
+            reshaped_groups.append(reshape_group(groupby.get_group(group)))
+
+        reformatted_data = pd.concat(reshaped_groups)
+        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
+        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+
+        # color scale
+        scale = [[0.0, "#00B2EE"], [0.105, "#e2e2e2"], [0.2, '#ff4d4d'],[0.4, '#ff0000'], 
+        [0.6, '#e60000'],[0.8, '#cc0000'],[1.0, '#b30000'], ]
+
+        # define layout and figure
+        layout = dict(geo=dict(scope='usa',
+                            projection={'type': 'albers usa'}),)
+
+        fig = px.choropleth(reformatted_data,
+                            locations="state",
+                            color="pctChange",
+                            hover_name ="state", 
+                            color_continuous_scale = scale,
+                            scope ="usa",
+                            locationmode='USA-states',
+                            animation_frame ="date",
+                        range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
+
+        fig.layout.title="Percent Change of \"School Bullying\" Searches, Month to Month"
+        fig.layout.font={"family":"Droid Serif"}
+        fig.layout.titlefont={"size":21}
+        fig.update_coloraxes(colorbar={"len": 0.7})
+
+        return fig
+    
+    else:
+        map_data = percent_change_data['cy_bly']
+
+        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
+        reshaped_groups = []
+        for group in groupby.groups:
+            reshaped_groups.append(reshape_group(groupby.get_group(group)))
+
+        reformatted_data = pd.concat(reshaped_groups)
+        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
+        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+
+        # color scale
+        scale = [[0.0, "#00B2EE"], [0.05, "#e2e2e2"], [0.16, '#ff4d4d'],[0.2, '#ff0000'], 
+        [0.4, '#e60000'],[0.6, '#cc0000'],[1.0, '#b30000'], ]
+
+        # define layout and figure
+        layout = dict(geo=dict(scope='usa',
+                            projection={'type': 'albers usa'}),)
+
+        fig = px.choropleth(reformatted_data,
+                            locations="state",
+                            color="pctChange",
+                            hover_name ="state", 
+                            color_continuous_scale = scale,
+                            scope ="usa",
+                            locationmode='USA-states',
+                            animation_frame ="date",
+                        range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
+
+        fig.layout.title="Percent Change of \"Cyberbullying\" Searches, Month to Month"
+        fig.layout.font={"family":"Droid Serif"}
+        fig.layout.titlefont={"size":21}
+        fig.update_coloraxes(colorbar={"len": 0.7})
+
+        return fig
 
 
 if __name__ == '__main__':
