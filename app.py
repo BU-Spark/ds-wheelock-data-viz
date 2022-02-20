@@ -7,7 +7,10 @@ from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 from percent_change import reformat_to_pct_change
 
+"""See https://plotly.com/ for deployment instructions"""
+
 app = dash.Dash(__name__)
+app.css.config.serve_locally = True
 
 # extract each state's data
 data = pd.read_csv('bullying_viz_data.csv')
@@ -21,9 +24,14 @@ dates = [col[1] for col in data.columns]
 # for s in states_names:
 #     all_states[s] = states.get_group(s)
 
+text_style = {
+    "font-family": "Droid Serif",
+    "color": "#054c75",
+    "text-align": "center"
+}
 
 app.layout = html.Div(children=[
-    html.H1(children='Wheelock Dashboard'),
+    html.H1(children='Bullying Dashboard', className="app-header", style={"color": "#054c75", "text-align": "center"}),
     
     html.Div(
         dcc.Dropdown(
@@ -33,13 +41,22 @@ app.layout = html.Div(children=[
                 {'label': "Cyberbullying", "value": "cyberbullying"},
                 {'label': "School Bullying + Cyberbullying", "value": "school bullying + cyberbullying"},
             ],
-            placeholder='Select'
+            placeholder='School Bullying + Cyberbullying'
         )
     ),
 
     html.Div(
-        dcc.Graph(id="map")
+        dcc.Graph(id="map"),
+        # need to customize for each dropdown option
+        
     ),
+
+    html.P(
+            "Note: This heat map shows the percent change of Google searches for the search terms “school bullying” and “cyberbullying” from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+            id='map_caption',
+            className="map--caption",
+            style={"color": "#054c75", "font-family": "Droid Serif"}
+        ),
 
     html.Div([
         dcc.Dropdown(
