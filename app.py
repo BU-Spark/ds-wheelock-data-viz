@@ -24,9 +24,6 @@ dates = [col[1] for col in data.columns]
 # for s in states_names:
 #     all_states[s] = states.get_group(s)
 
-#app.config['suppress_callback_exceptions']=True
-
-caption_text = ""
 app.layout = html.Div(children=[
     html.H1(children='Bullying Dashboard', className="app-header", style={"color": "#054c75", "text-align": "center"}),
     
