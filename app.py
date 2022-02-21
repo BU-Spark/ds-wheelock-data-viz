@@ -24,39 +24,30 @@ dates = [col[1] for col in data.columns]
 # for s in states_names:
 #     all_states[s] = states.get_group(s)
 
-text_style = {
-    "font-family": "Droid Serif",
-    "color": "#054c75",
-    "text-align": "center"
-}
+#app.config['suppress_callback_exceptions']=True
 
+caption_text = ""
 app.layout = html.Div(children=[
     html.H1(children='Bullying Dashboard', className="app-header", style={"color": "#054c75", "text-align": "center"}),
     
     html.Div(
-        dcc.Dropdown(
-            id="map_dropdown",
-            options=[
-                {'label': "School Bullying", "value": "school bullying"},
-                {'label': "Cyberbullying", "value": "cyberbullying"},
-                {'label': "School Bullying + Cyberbullying", "value": "school bullying + cyberbullying"},
-            ],
-            placeholder='School Bullying + Cyberbullying'
-        )
+        children=[
+            dcc.Dropdown(
+                id="map_dropdown",
+                options=[
+                    {'label': "School Bullying", "value": "school bullying"},
+                    {'label': "Cyberbullying", "value": "cyberbullying"},
+                    {'label': "School Bullying + Cyberbullying", "value": "school bullying + cyberbullying"},
+                ],
+                placeholder='School Bullying + Cyberbullying'
+            ),
+            html.Div(
+                dcc.Graph(id="map"),
+            ),
+            # has the same id as the children variable inside the map callback
+            html.P(id="map_caption")
+        ]
     ),
-
-    html.Div(
-        dcc.Graph(id="map"),
-        # need to customize for each dropdown option
-        
-    ),
-
-    html.P(
-            "Note: This heat map shows the percent change of Google searches for the search terms “school bullying” and “cyberbullying” from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
-            id='map_caption',
-            className="map--caption",
-            style={"color": "#054c75", "font-family": "Droid Serif"}
-        ),
 
     html.Div([
         dcc.Dropdown(
@@ -267,7 +258,8 @@ def reshape_group(g):
 
 
 @app.callback(
-    Output("map", "figure"),
+    [Output("map", "figure"),
+    Output('map_caption', 'children')],
     [Input('map_dropdown', 'value')]
 )
 def load_map(value):
@@ -295,7 +287,7 @@ def load_map(value):
         # define layout and figure
         layout = dict(geo=dict(scope='usa',
                             projection={'type': 'albers usa'}),
-                    title="Percent Change in Sum of Bullying Searches, Month to Month", # have to change this when adding 
+                    title="Percent Change in Sum of All Bullying Searches, Month to Month", # have to change this when adding 
         )
 
         fig = px.choropleth(reformatted_data,
@@ -313,9 +305,16 @@ def load_map(value):
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
 
-        return fig
+        # define the children variable to return in callback
+        children = [html.P(
+                f"Note: This heat map shows the monthly percent change in Google searches for the search terms \"school bullying\" and \"cyberbullying\" from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                id='map_caption',
+                className="map-caption",
+                style={"color": "#054c75", "font-family": "Droid Serif"}
+            ),]
+        return fig, children
 
-    elif value == "school bullying + cyberbullying":
+    elif value == "school bullying":
         map_data = percent_change_data['sch_bly']
 
         groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
@@ -349,8 +348,13 @@ def load_map(value):
         fig.layout.font={"family":"Droid Serif"}
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
-
-        return fig
+        children = [html.P(
+                f"Note: This heat map shows the monthly percent change in Google searches for the search term \"school bullying\"  from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                id='map_caption',
+                className="map-caption",
+                style={"color": "#054c75", "font-family": "Droid Serif"}
+            ),]
+        return fig, children
     
     else:
         map_data = percent_change_data['cy_bly']
@@ -386,9 +390,35 @@ def load_map(value):
         fig.layout.font={"family":"Droid Serif"}
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
+        children = [html.P(
+                "Note: This heat map shows the monthly percent change in Google searches for the search term \"cyberbullying\" from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                id='map_caption',
+                className="map-caption",
+                style={"color": "#054c75", "font-family": "Droid Serif"}
+            ),]
+        return fig, children
 
-        return fig
-
+# take in "value", return "caption_text" to P field
+@app.callback(
+    Output("map_caption", "caption_text"),
+    [Input('map_dropdown', 'value')]
+)
+def set_caption(value):
+    if value == None or value == "school bullying + cyberbullying":
+        print(f"value in set_caption: {value}")
+        caption_text = "search terms “school bullying” and “cyberbullying”"
+    elif value == "school bullying + cyberbullying":
+        print(f"value in set_caption: {value}")
+        caption_text = "search term “school #bullying”"
+    else:
+        print(f"value in set_caption: {value}")
+        caption_text = "search term “cyberbullying”"
+    return [html.P(
+                f"Note: This heat map shows the percent change of Google searches for the {caption_text} from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                id='map_caption',
+                className="map-caption",
+                style={"color": "#054c75", "font-family": "Droid Serif"}
+            ),]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
