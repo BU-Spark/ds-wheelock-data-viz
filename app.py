@@ -395,27 +395,6 @@ def load_map(value):
             ),]
         return fig, children
 
-# take in "value", return "caption_text" to P field
-@app.callback(
-    Output("map_caption", "caption_text"),
-    [Input('map_dropdown', 'value')]
-)
-def set_caption(value):
-    if value == None or value == "school bullying + cyberbullying":
-        print(f"value in set_caption: {value}")
-        caption_text = "search terms “school bullying” and “cyberbullying”"
-    elif value == "school bullying + cyberbullying":
-        print(f"value in set_caption: {value}")
-        caption_text = "search term “school #bullying”"
-    else:
-        print(f"value in set_caption: {value}")
-        caption_text = "search term “cyberbullying”"
-    return [html.P(
-                f"Note: This heat map shows the percent change of Google searches for the {caption_text} from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
-                id='map_caption',
-                className="map-caption",
-                style={"color": "#054c75", "font-family": "Droid Serif"}
-            ),]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
