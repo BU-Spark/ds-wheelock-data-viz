@@ -112,12 +112,15 @@ app.layout = html.Div(children=[
             id='graph',
             className='dropgraph'
         ),
-    )
+    ),
+
+    html.P(id="footnote")
     
 ])
 
 @app.callback(
-    Output('graph', 'figure'),
+    [Output('graph', 'figure'),
+    Output('footnote', 'children')],
     [Input('dropdown', 'value')]
 ) 
 def update_graph(value):
@@ -150,10 +153,12 @@ def update_graph(value):
     if value == 'US':
         value = 'the US'
     layouts = go.Layout(
-        title='School Bullying Searches Over The Years in ' + value,
-
+        title='Percent Change of All Bullying Searches in ' + value + ' from Month to Month',
+        font={"family":"Droid Serif"},
+        titlefont={"size":21},
+        
         xaxis=dict(
-            title='Time',
+            title='Date',
             showgrid=True,
             # showline=True,
             color='black',
@@ -161,14 +166,15 @@ def update_graph(value):
             tickangle= 45,
             tickvals=['Mar-01-16', 'Jun-01-16', 'Sep-01-16', 'Dec-01-16', 'Mar-01-17', 'Jun-01-17', 'Sep-01-17', 'Dec-01-17', 'Mar-01-18', 'Jun-01-18', 'Sep-01-18', 'Dec-01-18', 'Mar-01-19', 'Jun-01-19','Sep-01-19', 'Dec-01-19', 'Mar-01-20', 'Jun-01-20','Sep-01-20', 'Dec-01-20'],
             ticktext=['Mar 01 2016', 'Jun 01 2016', 'Sep 01 2016', 'Dec 01 2016', 'Mar 01 2017', 'Jun 01 2017', 'Sep 01 2017', 'Dec 01 2017', 'Mar 01 2018', 'Jun 01 2018', 'Sep 01 2018', 'Dec 01 2018', 'Mar 01 2019', 'Jun 01 2019', 'Sep 01 2019', 'Dec 01 2019', 'Mar 01 2020', 'Jun 01 2020', 'Sep 01 2020', 'Dec 01 2020'],
+            #ticktext=['Spring 2016', 'Summer 2016', 'Fall 2016', 'Winter 2016','Spring 2017', 'Summer 2017', 'Fall 2017', 'Winter 2017','Spring 2018', 'Summer 2018', 'Fall 2018', 'Winter 2018','Spring 2019', 'Summer 2019', 'Fall 2019', 'Winter 2019','Spring 2020', 'Summer 2020', 'Fall 2020', 'Winter 2020']
         ),
         yaxis=dict(
             title= 'Percent Change',
             showgrid=True,
             showline=True,
             color='black',
-            range = [-200,500],
-        )
+            autorange=True,
+        ),
     )
 
     fig = go.Figure(
@@ -176,33 +182,15 @@ def update_graph(value):
         layout = layouts
     )
 
-    # fig.add_annotation(
-    #     x='Sep-01-16',
-    #     y=136.3637,
-    #     xref="x",
-    #     yref="y",
-    #     text="start of school",
-    #     showarrow=True,
-    #     font=dict(
-    #         family="Courier New, monospace",
-    #         size=16,
-    #         color="#ffffff"
-    #         ),
-    #     align="center",
-    #     arrowhead=2,
-    #     arrowsize=1,
-    #     arrowwidth=2,
-    #     arrowcolor="#636363",
-    #     ax=20,
-    #     ay=-30,
-    #     bordercolor="#c7c7c7",
-    #     borderwidth=2,
-    #     borderpad=4,
-    #     bgcolor="#ff7f0e",
-    #     opacity=0.8
-    #     )
+    fig.update_coloraxes(colorbar={"len": 0.7})
 
-    return fig
+    children = [html.P(
+                f"Note: This line plot captures data taken from the frequency of Google searches for the terms \"school bullying\" and \"cyberbullying\". It shows the percent change in searches from month to month between the years 2016 and 2020. Each labeled month holds the percent change value from the previous month (i.e. March 01, 2016 shows a change in -3% in searches from February 01, 2016 to March 01, 2016). Please select a state to see data from that state. Hover over a point on the lines to see specific values.",
+                id='footnote',
+                style={"color": "#054c75", "font-family": "Droid Serif"}
+            ),]
+
+    return fig, children
 
     '''
     return {'data': [go.Scatter(
