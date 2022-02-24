@@ -138,20 +138,48 @@ def update_graph(value):
     x_axis = dates
     y_axis1 = [data.loc[value][("sch_bly", date)] for date in dates]
     y_axis2 = [data.loc[value][("cy_bly", date)] for date in dates]
-
-    datas = [go.Scatter(
-                x=x_axis, 
-                y=y_axis1,
-                name='school bullying searches',
-                line=dict(color='#cc1900')),
-            go.Scatter(
-                x=x_axis, 
-                y=y_axis2,
-                name='cyberbullying searches',
-                line=dict(color='#004876'))]
+    y_axis_standard1 = [data.loc['US'][("sch_bly", date)] for date in dates]
+    y_axis_standard2 = [data.loc['US'][("cy_bly", date)] for date in dates]
 
     if value == 'US':
         value = 'the US'
+
+        datas = [go.Scatter(
+                    x=x_axis, 
+                    y=y_axis1,
+                    name='school bullying searches',
+                    line=dict(color='#cc1900')),
+                go.Scatter(
+                    x=x_axis, 
+                    y=y_axis2,
+                    name='cyberbullying searches',
+                    line=dict(color='#004876'))]
+
+    else:
+        datas = [go.Scatter(
+                    x=x_axis, 
+                    y=y_axis1,
+                    name='school bullying searches',
+                    line=dict(color='#cc1900')),
+                go.Scatter(
+                    x=x_axis, 
+                    y=y_axis2,
+                    name='cyberbullying searches',
+                    line=dict(color='#004876')),
+                go.Scatter(
+                    x=x_axis, 
+                    y=y_axis_standard1,
+                    opacity=0.3,
+                    name='school bullying searches nationwide',
+                    line=dict(color='#7f7f7f')),
+                go.Scatter(
+                    x=x_axis, 
+                    y=y_axis_standard2,
+                    opacity=0.3,
+                    name='cyberbullying searches nationwide',
+                    line=dict(color='#7f7f7f'))]
+
+    
     layouts = go.Layout(
         title='Percent Change of All Bullying Searches in ' + value + ' from Month to Month',
         font={"family":"Droid Serif"},
@@ -185,7 +213,7 @@ def update_graph(value):
     fig.update_coloraxes(colorbar={"len": 0.7})
 
     children = [html.P(
-                f"Note: This line plot captures data taken from the frequency of Google searches for the terms \"school bullying\" and \"cyberbullying\". It shows the percent change in searches from month to month between the years 2016 and 2020. Each labeled month holds the percent change value from the previous month (i.e. March 01, 2016 shows a change in -3% in searches from February 01, 2016 to March 01, 2016). Please select a state to see data from that state. Hover over a point on the lines to see specific values.",
+                f"Note: This line plot captures data taken from the frequency of Google searches for the terms \"school bullying\" and \"cyberbullying\". It shows the percent change in searches from month to month between the years 2016 and 2020. Each labeled month holds the percent change value from the previous month (i.e. March 01, 2016 shows a change in -3% in searches from February 01, 2016 to March 01, 2016). Please select a state from the dropdown menu on top of the figure to see data from that state. Click on the labels to the right of the figure to select which data to view. Hover over a point on the lines to see specific values.",
                 id='footnote',
                 style={"color": "#054c75", "font-family": "Droid Serif"}
             ),]
