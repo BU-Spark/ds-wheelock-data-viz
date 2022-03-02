@@ -3,9 +3,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
 import pandas as pd
+import numpy as np
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-from percent_change import reformat_to_pct_change
+from percent_change import reformat_to_pct_change, get_map_pct_change_data
 
 """See https://plotly.com/ for deployment instructions"""
 
@@ -16,6 +17,38 @@ app.css.config.serve_locally = True
 data = pd.read_csv('bullying_viz_data.csv')
 data = reformat_to_pct_change(data)
 dates = [col[1] for col in data.columns]
+
+# create map data for all types of bullying
+
+def reshape_group(g):
+    """Helper method for generating map data"""
+    g = g.unstack('state')
+    g.columns = g.columns.droplevel()
+    g['state'] = [g.columns[0] for i in range(len(g))]
+    g = g.rename_axis("newhead").reset_index()
+    g.columns.name = None
+    g.columns = ['date', 'pctChange', 'state']
+    return g
+
+
+def generate_map_data(bullying_type):
+    """Used to generate the data for all maps upon loading site"""
+    map_data = get_map_pct_change_data(pd.read_csv('bullying_viz_data.csv'), bullying_type)
+
+    groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
+    reshaped_groups = []
+    for group in groupby.groups:
+        reshaped_groups.append(reshape_group(groupby.get_group(group)))
+    
+    reformatted_data = pd.concat(reshaped_groups)
+    reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
+    reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+    return reformatted_data
+
+
+combined_map_data = generate_map_data("sch_cy_bly_sum")
+cyber_map_data = generate_map_data("cy_bly")
+school_map_data = generate_map_data("sch_bly")
 
 # states = data.groupby('state')
 # states_names = states.groups
@@ -259,68 +292,56 @@ def update_graph(value):
     '''
 
 
-def reshape_group(g):
-    """Helper method for formatting map data"""
-    g = g.unstack('state')
-    g.columns = g.columns.droplevel()
-    g['state'] = [g.columns[0] for i in range(len(g))]
-    g = g.rename_axis("newhead").reset_index()
-    g.columns.name = None
-    g.columns = ['date', 'pctChange', 'state']
-    return g
-
-
 @app.callback(
     [Output("map", "figure"),
     Output('map_caption', 'children')],
     [Input('map_dropdown', 'value')]
 )
 def load_map(value):
-    """Note: For detailed code with explanations for map generation, see map_generation.ipynb"""
-
-    # load and reformat data to be compatable with choropleth map
-    percent_change_data = reformat_to_pct_change(pd.read_csv('bullying_viz_data.csv'))
+    """Note: For demo plots and full pipeline of how maps are generated, see map_generation.ipynb"""
 
     if value == None or value == "school bullying + cyberbullying":
-        map_data = percent_change_data['sch_cy_bly_sum']
+        reformatted_data = combined_map_data
+        scale = [[0.0, '#00B2EE'], [0.18, 'white'], [0.4, "#ff0000"], [1, "#7C0D0E"]]
 
-        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
-        reshaped_groups = []
-        for group in groupby.groups:
-            reshaped_groups.append(reshape_group(groupby.get_group(group)))
-        
-        reformatted_data = pd.concat(reshaped_groups)
-        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
-        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
-
-        # color scale
-        scale = [[0.0, "#00B2EE"], [0.13, "#e2e2e2"], [0.2, '#ff4d4d'],[0.4, '#ff0000'], 
-        [0.6, '#e60000'],[0.8, '#cc0000'],[1.0, '#b30000'], ]
-
-        # define layout and figure
         layout = dict(geo=dict(scope='usa',
                             projection={'type': 'albers usa'}),
-                    title="Percent Change in Sum of All Bullying Searches, Month to Month", # have to change this when adding 
+                    title="Percent Change in Sum of Bullying Searches From Pre-Pandemic Levels", # have to change this when adding 
         )
+
 
         fig = px.choropleth(reformatted_data,
                             locations="state",
                             color="pctChange",
-                            hover_name ="state", 
                             color_continuous_scale = scale,
                             scope ="usa",
                             locationmode='USA-states',
-                            animation_frame ="date",
+                            animation_frame="date",
                         range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
 
-        fig.layout.title="Percent Change of All Bullying Searches, Month to Month"
+
+        fig.layout.title="Percent Change all Bullying Searches From Pre-Pandemic Levels"
+
+        # hover 
+        fig.update_layout(
+            hoverlabel=dict(
+                bgcolor="white",
+            )
+        )
+
+        customdata = np.stack((reformatted_data['pctChange'], reformatted_data['state']), axis=-1)
+        hovertemplate = ('Percent Change: %{customdata[0]}%<br>' + 
+            'State: %{customdata[1]}<br>' + 
+            '<extra></extra>')
+        fig.update_traces(customdata=customdata, hovertemplate=hovertemplate)
+
         fig.layout.font={"family":"Droid Serif"}
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
 
         # define the children variable to return in callback
         children = [html.P(
-                f"Note: This heat map shows the monthly percent change in Google searches for the search terms \"school bullying\" and \"cyberbullying\" from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                f"Note: This heat map shows the difference (as percent change) between Google searches for the search terms \"school bullying\" and \"cyberbullying\" from before and during the pandemic. The pre-pandemic levels are determined by aggregating and averaging the monthly search intensities from 2016 to 2018. For each month from March 2019 to February 2021, the percent change is calculated between the search intensity of that month and the corresponding month from the aggregate pre-pandemic data. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
                 id='map_caption',
                 className="map-caption",
                 style={"color": "#054c75", "font-family": "Droid Serif"}
@@ -328,20 +349,10 @@ def load_map(value):
         return fig, children
 
     elif value == "school bullying":
-        map_data = percent_change_data['sch_bly']
-
-        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
-        reshaped_groups = []
-        for group in groupby.groups:
-            reshaped_groups.append(reshape_group(groupby.get_group(group)))
-
-        reformatted_data = pd.concat(reshaped_groups)
-        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
-        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+        reformatted_data = school_map_data
 
         # color scale
-        scale = [[0.0, "#00B2EE"], [0.105, "#e2e2e2"], [0.2, '#ff4d4d'],[0.4, '#ff0000'], 
-        [0.6, '#e60000'],[0.8, '#cc0000'],[1.0, '#b30000'], ]
+        scale = [[0.0, '#00B2EE'], [0.15, 'white'], [0.28, "#ff0000"], [1, "#7C0D0E"]]
 
         # define layout and figure
         layout = dict(geo=dict(scope='usa',
@@ -357,12 +368,27 @@ def load_map(value):
                             animation_frame ="date",
                         range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
 
-        fig.layout.title="Percent Change of \"School Bullying\" Searches, Month to Month"
+        # hover 
+        fig.update_layout(
+            hoverlabel=dict(
+                bgcolor="white",
+            )
+        )
+
+        # have to reference data by using another df
+        customdata = np.stack((reformatted_data['pctChange'], reformatted_data['state']), axis=-1)
+        hovertemplate = ('Percent Change: %{customdata[0]}%<br>' + 
+            'State: %{customdata[1]}<br>' + 
+            '<extra></extra>')
+        fig.update_traces(customdata=customdata, hovertemplate=hovertemplate)
+
+
+        fig.layout.title="Percent Change of \"School Bullying\" Searches From Pre-Pandemic Levels"
         fig.layout.font={"family":"Droid Serif"}
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
         children = [html.P(
-                f"Note: This heat map shows the monthly percent change in Google searches for the search term \"school bullying\"  from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                f"Note: This heat map shows the difference (as percent change) between Google searches for the search term \"school bullying\" from before and during the pandemic. The pre-pandemic levels are determined by aggregating and averaging the monthly search intensities from 2016 to 2018. For each month from March 2019 to February 2021, the percent change is calculated between the search intensity of that month and the corresponding month from the aggregate pre-pandemic data. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",                
                 id='map_caption',
                 className="map-caption",
                 style={"color": "#054c75", "font-family": "Droid Serif"}
@@ -370,20 +396,10 @@ def load_map(value):
         return fig, children
     
     else:
-        map_data = percent_change_data['cy_bly']
-
-        groupby = pd.DataFrame(map_data.stack()).groupby(by='state')
-        reshaped_groups = []
-        for group in groupby.groups:
-            reshaped_groups.append(reshape_group(groupby.get_group(group)))
-
-        reformatted_data = pd.concat(reshaped_groups)
-        reformatted_data['sorting_col'] = pd.to_datetime(reformatted_data['date'])
-        reformatted_data = reformatted_data.sort_values(by=['sorting_col'], ascending=True)
+        reformatted_data = cyber_map_data
 
         # color scale
-        scale = [[0.0, "#00B2EE"], [0.05, "#e2e2e2"], [0.16, '#ff4d4d'],[0.2, '#ff0000'], 
-        [0.4, '#e60000'],[0.6, '#cc0000'],[1.0, '#b30000'], ]
+        scale = [[0.0, '#00B2EE'], [0.14, 'white'], [0.30, "#ff0000"], [1, "#7C0D0E"]]
 
         # define layout and figure
         layout = dict(geo=dict(scope='usa',
@@ -399,12 +415,27 @@ def load_map(value):
                             animation_frame ="date",
                         range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
 
-        fig.layout.title="Percent Change of \"Cyberbullying\" Searches, Month to Month"
+        # hover 
+        fig.update_layout(
+            hoverlabel=dict(
+                bgcolor="white",
+            )
+        )
+
+        customdata = np.stack((reformatted_data['pctChange'], reformatted_data['state']), axis=-1)
+        hovertemplate = ('Percent Change: %{customdata[0]}%<br>' + 
+            'State: %{customdata[1]}<br>' + 
+            '<extra></extra>')
+        fig.update_traces(customdata=customdata, hovertemplate=hovertemplate)
+
+
+        fig.layout.title="Percent Change of \"Cyberbullying\" Searches From Pre-Pandemic Levels"
         fig.layout.font={"family":"Droid Serif"}
         fig.layout.titlefont={"size":21}
         fig.update_coloraxes(colorbar={"len": 0.7})
+
         children = [html.P(
-                "Note: This heat map shows the monthly percent change in Google searches for the search term \"cyberbullying\" from February 2016 to February 2021. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",
+                f"Note: This heat map shows the difference (as percent change) between Google searches for the search term \"cyber bullying\" from before and during the pandemic. The pre-pandemic levels are determined by aggregating and averaging the monthly search intensities from 2016 to 2018. For each month from March 2019 to February 2021, the percent change is calculated between the search intensity of that month and the corresponding month from the aggregate pre-pandemic data. Use the scroll at the bottom to navigate over time. Hover over an individual state to see specific values.",                
                 id='map_caption',
                 className="map-caption",
                 style={"color": "#054c75", "font-family": "Droid Serif"}
