@@ -11,6 +11,7 @@ from percent_change import reformat_to_pct_change, get_map_pct_change_data
 """See https://plotly.com/ for deployment instructions"""
 
 app = dash.Dash(__name__)
+server = app.server
 app.css.config.serve_locally = True
 
 # extract each state's data
