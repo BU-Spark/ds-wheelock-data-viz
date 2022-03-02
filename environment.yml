@@ -100,6 +100,7 @@ dependencies:
   - gmp=6.2.1=h23ab428_2
   - gmpy2=2.0.8=py39h4b98818_3
   - greenlet=1.1.1=py39h23ab428_0
+  - gunicorn
   - h5py=3.6.0=py39h4a1dd59_0
   - hdf5=1.10.6=hdbbcd12_0
   - heapdict=1.0.1=pyhd3eb1b0_0
