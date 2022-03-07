@@ -311,7 +311,7 @@ def load_map(value):
                         range_color=[min(reformatted_data.pctChange), max(reformatted_data.pctChange)])
 
 
-        fig.layout.title="Percent Change all Bullying Searches From Pre-Pandemic Levels"
+        fig.layout.title="Percent Change of Bullying Searches From Pre-Pandemic Levels"
 
         # hover 
         fig.update_layout(
